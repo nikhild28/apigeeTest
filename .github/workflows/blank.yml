@@ -1,0 +1,67 @@
+name: Proxy Deployment
+
+on:
+  push:
+    branches:
+      - main  # Change this to your main branch name
+jobs:
+  deploy-proxy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    # needs: apigeelint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v1
+        with:
+          token_format: access_token
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }} 
+
+
+      - name: Install apigee-deploy
+        run: npm install -g apigee-deploy
+
+      - name: Deploy Developer
+        run: |
+          # Get the list of changed files in the last commit
+          changed_files=$(git diff --name-only HEAD^1 HEAD)
+
+          # Search for a file with the given name (e.g., "developers.json")
+          file_name="developers.json"
+          file_path=$(echo "$changed_files" | grep "$file_name")
+
+          # Check if the file was changed
+          if [ -n "$file_path" ]; then
+            # Extract the dynamic path by removing the file name and leading /src/
+            dynamicPath=$(dirname "${file_path#src/}")
+
+            # Get the content of the file at the previous commit and save it in olddata.json
+            git show HEAD^1:"$file_path" > olddata.json
+
+            # Get the content of the file at the current commit and save it in newdata.json
+            cat "$file_path" > newdata.json
+
+            # Run apigee-developer-list-update with the created files
+            apigee-developer-list-update -t "ya29.a0AfB_byBS5ufPnkGNUF43Wp0BLl6wtxnLXsk4GmWjaHtKgMCyAlLY1t1kodmZFGug1QwYr6ha_THbwU4dzqfem80tse20VyvhfZHMMOhP2JDaPwZdArsdD6LaR59vNgt9EteBcuxJd6Pyk7qcz5nNuCEgq6WDA5bjAB8z-jGhuOG1aCgYKAQMSARESFQHGX2MiNY5qV1LCi8v_LRZ_IiTqVg0179" -o prudential-spike-eval -of ./olddata.json -nf ./newdata.json
+
+            # Now, you can use $dynamicPath, olddata.json, and newdata.json in your workflow
+            echo "Dynamic path: $dynamicPath"
+            echo "Previous commit data saved in olddata.json"
+            echo "New commit data saved in newdata.json"
+          else
+            echo "No changes detected for $file_name in the last commit."
+          fi
+
