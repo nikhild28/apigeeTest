@@ -10,5 +10,17 @@
     "userName": "nkl",
     "firstName": "nikhil",
     "lastName": "d"
+  },
+  {
+    "attributes": [
+      {
+        "name": "sample_attribute_0",
+        "value": "sample_attribute_value_0"
+      }
+    ],
+    "email": "devid@gmail.com",
+    "userName": "devid123",
+    "firstName": "Devid",
+    "lastName": "D"
   }
 ]
